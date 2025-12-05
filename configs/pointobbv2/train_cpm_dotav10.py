@@ -3,9 +3,9 @@ _base_ = [
     '../_base_/default_runtime.py'
 ]
 
-data_root = 'data/split_ss_dota_v10/'
+data_root = 'data/split_ss_dota/'
 
-store_dir = 'your_absolute_vis_dir'
+store_dir = '/content/drive/MyDrive/PointOBB-v2/vis_out/pointobb'
 
 angle_version = 'le90'
 
