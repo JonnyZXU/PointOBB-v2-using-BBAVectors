@@ -80,7 +80,6 @@ model = dict(
     # store_dir='rotated_fcos_r50_fpn_1x_dota_le90_2',
     bbox_head=dict(
         type='CPMHead',
-        heatmap_mode='gaussian',   # <-- new line
         num_classes=len(classes),
         in_channels=256,
         stacked_convs=4,
@@ -115,6 +114,7 @@ model = dict(
         vis_train_duration=200,
         heatmap_beta=4.0,      # CenterNet hyperparameter
         heatmap_alpha=2.0,     # CenterNet alpha
+        heatmap_mode='gaussian',   # <-- new line
         ),
     test_cfg=dict(
         store_dir=store_dir,

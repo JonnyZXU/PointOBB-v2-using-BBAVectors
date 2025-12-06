@@ -18,6 +18,65 @@ from PIL import Image
 INF = 1e8
 
 
+def gaussian_radius(det_size, min_overlap=0.7):
+        """Approximate CenterNet gaussian radius. det_size is (h, w)."""
+        h, w = det_size[0], det_size[1]
+
+        a1 = 1
+        b1 = h + w
+        c1 = w * h * (1 - min_overlap) / (1 + min_overlap)
+        sq1 = b1 ** 2 - 4 * a1 * c1
+        sq1 = torch.clamp(sq1, min=0.0)
+        r1 = (b1 + torch.sqrt(sq1)) / 2
+
+        a2 = 4
+        b2 = 2 * (h + w)
+        c2 = (1 - min_overlap) * w * h
+        sq2 = b2 ** 2 - 4 * a2 * c2
+        sq2 = torch.clamp(sq2, min=0.0)
+        r2 = (b2 + torch.sqrt(sq2)) / 2
+
+        a3 = 4 * min_overlap
+        b3 = -2 * min_overlap * (h + w)
+        c3 = (min_overlap - 1) * w * h
+        sq3 = b3 ** 2 - 4 * a3 * c3
+        sq3 = torch.clamp(sq3, min=0.0)
+        r3 = (b3 + torch.sqrt(sq3)) / 2
+
+        return torch.min(torch.min(r1, r2), r3)
+
+
+def draw_gaussian(heatmap, center, radius, k=1.0):
+    """Draw a 2D Gaussian on `heatmap` (H,W) at given center (x,y)."""
+    x, y = int(center[0]), int(center[1])
+    height, width = heatmap.shape[-2:]
+
+    if x < 0 or y < 0 or x >= width or y >= height:
+        return
+
+    diameter = 2 * radius + 1
+    sigma = diameter / 6.0
+
+    ys = torch.arange(0, diameter, device=heatmap.device) - radius
+    xs = torch.arange(0, diameter, device=heatmap.device) - radius
+    yy, xx = torch.meshgrid(ys, xs)
+    gaussian = torch.exp(-(xx ** 2 + yy ** 2) / (2 * sigma ** 2))
+
+    left   = max(0, x - radius)
+    right  = min(width, x + radius + 1)
+    top    = max(0, y - radius)
+    bottom = min(height, y + radius + 1)
+
+    g_left   = left - (x - radius)
+    g_right  = g_left + (right - left)
+    g_top    = top - (y - radius)
+    g_bottom = g_top + (bottom - top)
+
+    patch = heatmap[top:bottom, left:right]
+    g_patch = gaussian[g_top:g_bottom, g_left:g_right]
+
+    torch.maximum(patch, g_patch * k, out=patch)
+
 @ROTATED_HEADS.register_module()
 class CPMHead(RotatedFCOSHead):
     """Anchor-free head used in `FCOS <https://arxiv.org/abs/1904.01355>`_.
@@ -103,65 +162,6 @@ class CPMHead(RotatedFCOSHead):
         self.hm_alpha = train_cfg.get('heatmap_alpha', 2.0)
         self.hm_beta = train_cfg.get('heatmap_beta', 4.0)
 
-
-    def gaussian_radius(det_size, min_overlap=0.7):
-        """Approximate CenterNet gaussian radius. det_size is (h, w)."""
-        h, w = det_size[0], det_size[1]
-
-        a1 = 1
-        b1 = h + w
-        c1 = w * h * (1 - min_overlap) / (1 + min_overlap)
-        sq1 = b1 ** 2 - 4 * a1 * c1
-        sq1 = torch.clamp(sq1, min=0.0)
-        r1 = (b1 + torch.sqrt(sq1)) / 2
-
-        a2 = 4
-        b2 = 2 * (h + w)
-        c2 = (1 - min_overlap) * w * h
-        sq2 = b2 ** 2 - 4 * a2 * c2
-        sq2 = torch.clamp(sq2, min=0.0)
-        r2 = (b2 + torch.sqrt(sq2)) / 2
-
-        a3 = 4 * min_overlap
-        b3 = -2 * min_overlap * (h + w)
-        c3 = (min_overlap - 1) * w * h
-        sq3 = b3 ** 2 - 4 * a3 * c3
-        sq3 = torch.clamp(sq3, min=0.0)
-        r3 = (b3 + torch.sqrt(sq3)) / 2
-
-        return torch.min(torch.min(r1, r2), r3)
-
-
-    def draw_gaussian(heatmap, center, radius, k=1.0):
-        """Draw a 2D Gaussian on `heatmap` (H,W) at given center (x,y)."""
-        x, y = int(center[0]), int(center[1])
-        height, width = heatmap.shape[-2:]
-
-        if x < 0 or y < 0 or x >= width or y >= height:
-            return
-
-        diameter = 2 * radius + 1
-        sigma = diameter / 6.0
-
-        ys = torch.arange(0, diameter, device=heatmap.device) - radius
-        xs = torch.arange(0, diameter, device=heatmap.device) - radius
-        yy, xx = torch.meshgrid(ys, xs, indexing='ij')
-        gaussian = torch.exp(-(xx ** 2 + yy ** 2) / (2 * sigma ** 2))
-
-        left   = max(0, x - radius)
-        right  = min(width, x + radius + 1)
-        top    = max(0, y - radius)
-        bottom = min(height, y + radius + 1)
-
-        g_left   = left - (x - radius)
-        g_right  = g_left + (right - left)
-        g_top    = top - (y - radius)
-        g_bottom = g_top + (bottom - top)
-
-        patch = heatmap[top:bottom, left:right]
-        g_patch = gaussian[g_top:g_bottom, g_left:g_right]
-
-        torch.maximum(patch, g_patch * k, out=patch)
 
     def get_mask_image(self, max_probs, max_indices, thr, num_width):
         PALETTE = [
