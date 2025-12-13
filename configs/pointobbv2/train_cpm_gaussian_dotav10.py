@@ -5,7 +5,7 @@ _base_ = [
 
 data_root = 'data/split_ss_dota/'
 
-store_dir = '/content/drive/MyDrive/PointOBB-v2/vis_out/pointobb'
+store_dir = '/Users/jonat/OneDrive/Desktop/College/Year 4/ECE4990 Deep Learning/Paper Presentation DL/PointOBB-v2-using-BBAVectors/work_dirs/vis-out-gaussian'
 
 angle_version = 'le90'
 
@@ -106,7 +106,7 @@ model = dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)),
     # training and testing settings
     train_cfg=dict(
-        visualize=False,
+        visualize=True,
         store_dir=store_dir,
         cls_weight=1.0,
         thresh1=8,
@@ -133,4 +133,4 @@ lr_config = dict(
     warmup_ratio=1.0 / 3,
     step=[4])
 evaluation = dict(interval=6, metric='mAP')
-optimizer = dict(lr=0.0125)
+optimizer = dict(lr=0.025)
