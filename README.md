@@ -1,3 +1,24 @@
+
+## PointOBB-v2 using Gaussian CPM ##
+
+We expand on the foundation established by PointOBB-v2 by introducing Gaussian heatmaps as an alternative way to train the class probability maps, giving the model a smoother and more informative training signal. This adjustment lets the network learn object presence with more nuance, which improves small vehicle detection and raises confidence in its predictions. We also found that tuning certain hyperparameters, such as the image scale, allowed the detector to shift its sensitivity toward objects of different sizes, which made the overall system more flexible during experimentation.
+
+
+Below, we have added our architecture. While the original used positive/negative lables, our architecture replaces that with a Gaussian heatmap.
+
+<img width="595" height="245" alt="image" src="https://github.com/user-attachments/assets/7011cd0c-0d64-4943-8071-18494002066e" />
+
+
+#######################################
+
+The original README can be found below:
+
+######################################
+
+
+
+
+
 ## **PointOBB-v2: Towards Simpler, Faster, and Stronger Single Point Supervised Oriented Object Detection**
 
 [[paper]](https://arxiv.org/abs/2410.08210)
